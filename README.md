@@ -1,5 +1,5 @@
 # Snake
-**A Snake game written in C# with the Godot game engine**
+**A Snake game made with the Godot game engine**
 
 Copyright 2022 Jann Emken
 
@@ -8,7 +8,6 @@ Copyright 2022 Jann Emken
 Basic gameplay is working.
 
 ### TODO:
-- collision handling
 - score system
 - sounds
 - main menu
