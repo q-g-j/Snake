@@ -23,7 +23,7 @@ public class MainGame : Node
     private Vector2 applePosition;
     private List<Vector2> snakeBody;
     private Direction headDirection;
-    private bool isGameOver = false;
+    private bool isCollision = false;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -35,15 +35,17 @@ public class MainGame : Node
 
         snakeBody = new List<Vector2>()
         {
+            new Vector2(10, 10),
+            new Vector2(9, 10),
             new Vector2(8, 10),
-            new Vector2(7, 10),
-            new Vector2(6, 10),
-            new Vector2(5, 10),
-            new Vector2(4, 10),
-            new Vector2(3, 10),
-            new Vector2(2, 10),
-            new Vector2(1, 10),
-            new Vector2(0, 10),
+            // new Vector2(7, 10),
+            // new Vector2(6, 10),
+            // new Vector2(5, 10),
+            // new Vector2(4, 10),
+            // new Vector2(3, 10),
+            // new Vector2(2, 10),
+            // new Vector2(1, 10),
+            // new Vector2(0, 10),
         };
 
         headDirection = Direction.Right;
@@ -135,13 +137,47 @@ public class MainGame : Node
         return GetAdjacentPartPosition(index, true);
     }
 
+    private void GameOver()
+    {
+        GetNode<Timer>("Timer").Stop();
+        
+        Sprite sprite = new Sprite();
+        Texture snake = tileMap.TileSet.TileGetTexture(SNAKE);
+        sprite.Texture = snake;
+        sprite.RegionEnabled = true;
+
+        int offsetX = 0;
+        int offsetY = 0;
+
+        if (headDirection == Direction.Right)
+        {
+            offsetX = 6 * 40;
+            offsetY = 0 * 40;
+        }
+        else if (headDirection == Direction.Left)
+        {
+            offsetX = 5 * 40;
+            offsetY = 0 * 40;
+        }
+        else if (headDirection == Direction.Up)
+        {
+            offsetX = 5 * 40;
+            offsetY = 1 * 40;
+        }
+        else if (headDirection == Direction.Down)
+        {
+            offsetX = 6 * 40;
+            offsetY = 1 * 40;
+        }
+
+        AddChild(sprite);
+        sprite.RegionRect = new Rect2(new Vector2(offsetX, offsetY), new Vector2(cellSize.x, cellSize.y));
+        sprite.Position = new Vector2(snakeBody[0].x * 40 + 20, snakeBody[0].y * 40 + 20);
+    }
+
     private void DrawSnake()
     {
-        TileMap tileMapOverlay = null;
-        if (isGameOver)
-        {
-            tileMapOverlay = (TileMap)tileMap.Duplicate();
-        }
+        DeleteCells(SNAKE);
 
         Vector2 headTexture = Vector2.Zero;
 
@@ -242,16 +278,17 @@ public class MainGame : Node
                     tileMap.SetCell(((int)snakeBody[i].x), ((int)snakeBody[i].y), SNAKE, false, false, false, new Vector2(3, 1));
                 }
             }
-            
-            if (isGameOver)
+
+
+            for (int j = 1; j < snakeBody.Count; j++)
             {
-                tileMapOverlay.SetCell(((int)snakeBody[0].x), ((int)snakeBody[0].y), SNAKE, false, false, false, headTexture);
-                if (tileMapOverlay.GetParent() == null)
+                if (snakeBody[0] - snakeBody[j] == Vector2.Zero)
                 {
-                    GetParent().AddChild(tileMapOverlay);
+                    isCollision = true;
+                    break;
                 }
             }
-            else
+            if (i == 0 && ! isCollision)
             {
                 tileMap.SetCell(((int)snakeBody[0].x), ((int)snakeBody[0].y), SNAKE, false, false, false, headTexture);
             }
@@ -269,7 +306,6 @@ public class MainGame : Node
 
     private void MoveSnake()
     {
-
         var direction = Vector2.Zero;
 
         if (headDirection == Direction.Left)
@@ -287,21 +323,9 @@ public class MainGame : Node
         else if (headDirection == Direction.Down)
         {
             direction += new Vector2(0, 1);
-        }
-        
+        }        
+
         var newHead = snakeBody[0] + direction;
-
-
-        for (int i = 0; i < snakeBody.Count; i++)
-        {
-            if (newHead - snakeBody[i] == Vector2.Zero)
-            {
-                isGameOver = true;
-                break;
-            }
-        }
-
-        DeleteCells(SNAKE);
 
         List<Vector2> newBodyList = null;
 
@@ -353,17 +377,22 @@ public class MainGame : Node
 
     public void OnTimerTimeOut()
     {
-        if (! isGameOver)
-        {
-            MoveSnake();
-        }
+        MoveSnake();
         DrawSnake();
-        DrawApple();
+
+        if (! isCollision)
+        {
+            DrawApple();
+        }
+        else
+        {
+            GameOver();
+        }
     }
 
     public override void _Input(InputEvent inputEvent)
     {
-        if (! isGameOver)
+        if (! isCollision)
         {
             if (inputEvent.IsActionPressed("turn_left"))
             {
