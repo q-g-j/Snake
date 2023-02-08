@@ -12,15 +12,15 @@ enum Direction
     None
 }
 
-public class MainGame : Node
+public class Main : Node
 {
     private Vector2 screenSize;
     private Vector2 tileMapSize;
     private Vector2 cellSize;
     private TileMap tileMap;
     private readonly int SNAKE = 0;
-    private readonly int APPLE = 1;
-    private Vector2 applePosition;
+    private readonly int FRUIT = 1;
+    private Vector2 fruitPosition;
     private List<Vector2> snakeBody;
     private Direction headDirection;
     private bool isCollision = false;
@@ -49,38 +49,51 @@ public class MainGame : Node
         };
 
         headDirection = Direction.Right;
+
+        fruitPosition = GetRandomFruitPosition();
     }
 
-    private Vector2 GetApplePosition()
+    private List<Vector2> GetFreeCells()
     {
-        float x = 0;
-        float y = 0;
+        List<Vector2> freeCells = new List<Vector2>();
+        var usedCells = tileMap.GetUsedCells();
 
-        bool doRun = true;
-
-        while (doRun)
+        for (int i = 0; i < tileMapSize.x - 1; i++)
         {
-            GD.Randomize();
-            x = GD.Randi() % ((int)(tileMapSize.x));
-            y = GD.Randi() % ((int)(tileMapSize.y));
-
-            doRun = false;
-            foreach (Vector2 pos in snakeBody)
+            for (int j = 0; j < tileMapSize.y - 1; j++)
             {
-                if (pos - new Vector2(x, y) == Vector2.Zero)
+                var v = new Vector2(i, j);
+                bool isInUsedCells = false;
+                foreach (var usedCell in usedCells)
                 {
-                    doRun = true;
-                    break;
+                    if (v - (Vector2)usedCell == Vector2.Zero)
+                    {
+                        isInUsedCells = true;
+                        break;
+                    }
+                }
+                if (! isInUsedCells)
+                {
+                    freeCells.Add(v);
                 }
             }
         }
 
-        return new Vector2(x, y);
+        return freeCells;
     }
 
-    private void DrawApple()
+    private Vector2 GetRandomFruitPosition()
     {
-        tileMap.SetCell(((int)applePosition.x), ((int)applePosition.y), APPLE, false, false, false);
+        var freeCells = GetFreeCells();
+
+        GD.Randomize();
+        var randIndex = (int)(GD.Randi() % (freeCells.Count - 1));
+        return freeCells[randIndex];
+    }
+
+    private void DrawFruit()
+    {
+        tileMap.SetCell(((int)fruitPosition.x), ((int)fruitPosition.y), FRUIT, false, false, false);
     }
 
     private Direction GetAdjacentPartPosition(int currentIndex, bool isPreviousPart)
@@ -329,10 +342,10 @@ public class MainGame : Node
 
         List<Vector2> newBodyList = null;
 
-        if (newHead - applePosition == Vector2.Zero)
+        if (newHead - fruitPosition == Vector2.Zero)
         {
-            tileMap.SetCell(((int)applePosition.x), ((int)applePosition.y), -1);
-            applePosition = GetApplePosition();
+            tileMap.SetCell(((int)fruitPosition.x), ((int)fruitPosition.y), -1);
+            fruitPosition = GetRandomFruitPosition();
             newBodyList = snakeBody.Take(snakeBody.Count).ToList();
         }
         else
@@ -363,10 +376,10 @@ public class MainGame : Node
             }
         }
         
-        if (snakeBody[0] - applePosition == Vector2.Zero)
+        if (snakeBody[0] - fruitPosition == Vector2.Zero)
         {
-            tileMap.SetCell(((int)applePosition.x), ((int)applePosition.y), -1);
-            applePosition = GetApplePosition();
+            tileMap.SetCell(((int)fruitPosition.x), ((int)fruitPosition.y), -1);
+            fruitPosition = GetRandomFruitPosition();
             newBodyList = snakeBody.Take(snakeBody.Count).ToList();
         }
         else
@@ -382,7 +395,7 @@ public class MainGame : Node
 
         if (! isCollision)
         {
-            DrawApple();
+            DrawFruit();
         }
         else
         {
